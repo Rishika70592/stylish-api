@@ -1,15 +1,58 @@
 const express = require("express");
 const router = express.Router();
+
 const Product = require("../models/productmodel");
 const Wishlist = require("../models/wishlistModel");
+
 const authMiddleware = require("../middleware/authMiddleware");
 
-router.post("/add", authMiddleware, async(res,req) => {
-try {
-    const wishlistItems = await Wishlist.find({userId : req.user.id});
+
+
+router.post("/add", authMiddleware, async (req, res) => {
+  try {
+
+    const { productId } = req.body;
+
+    const existing = await Wishlist.findOne({
+      userId: req.user.id,
+      productId
+    });
+
+    if (existing) {
+      return res.json({
+        message: "Already in wishlist"
+      });
+    }
+
+    const item = await Wishlist.create({
+      userId: req.user.id,
+      productId
+    });
+
+    res.json({
+      success: true,
+      message: "Added to wishlist",
+      wishlistItemId: item._id
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+
+    const wishlistItems = await Wishlist.find({
+      userId: req.user.id
+    });
+
     let items = [];
 
-    for (let item of wishlistItems) {
+    for (const item of wishlistItems) {
+
       const product = await Product.findById(item.productId);
 
       if (product) {
@@ -17,18 +60,27 @@ try {
           wishlistItemId: item._id,
           productId: product._id,
           name: product.name,
-          price: product.price
+          price: product.price,
+          image: product.image
         });
       }
     }
-    res.json({items});
-}catch(err){
-    res.status(500).json({message : err.message});
-}
+
+    res.json({
+      success: true,
+      items
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
+
+
 
 router.delete("/remove/:wishlistItemId", authMiddleware, async (req, res) => {
   try {
+
     const { wishlistItemId } = req.params;
 
     const deletedItem = await Wishlist.findOneAndDelete({
@@ -37,7 +89,9 @@ router.delete("/remove/:wishlistItemId", authMiddleware, async (req, res) => {
     });
 
     if (!deletedItem) {
-      return res.status(404).json({ message: "Wishlist item not found" });
+      return res.status(404).json({
+        message: "Wishlist item not found"
+      });
     }
 
     res.json({
@@ -51,4 +105,3 @@ router.delete("/remove/:wishlistItemId", authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-

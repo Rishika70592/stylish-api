@@ -69,7 +69,20 @@ console.log(req.file);
     res.status(500).json({ message: error.message });
   }
 });
+router.get("/products", async (req, res) => {
+  try {
 
+    const products = await Product.find().sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      products
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 router.get("/products/:productId", async (req, res) => {
   try {
     const product = await Product.findById(req.params.productId);

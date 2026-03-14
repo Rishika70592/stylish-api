@@ -6,7 +6,7 @@ const app = express();
 connectDB();
 
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true }));
 app.use("/v1/auth", require("./routes/authRoutes"));
 app.use("/v1/user", require("./routes/userRoutes"));
 app.use("/v1", require("./routes/productRoutes"));

@@ -1,30 +1,38 @@
 const express = require("express");
 const router = express.Router();
+
 const Product = require("../models/productmodel");
 const Order = require("../models/orderModel");
+const Cart = require("../models/cartModel");
+
 const authMiddleware = require("../middleware/authMiddleware");
 
 
-const generateOrderId  = ()=> {
-       return "ORD" + Math.floor(100000 + Math.random() * 900000);
+const generateOrderId = () => {
+  return "ORD" + Math.floor(100000 + Math.random() * 900000);
 };
 
-router.post("/", authMiddleware, async(res, req) =>{
-    try {
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+
     const { addressId, paymentMethod } = req.body;
     const userId = req.user.id;
 
-      const cartItems = await Cart.find({ userId });
-      if (!cartItems.length) {
+    const cartItems = await Cart.find({ userId });
+
+    if (!cartItems.length) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
     let orderItems = [];
-    totalAmount = 0 ;
-    for (let cartItem in cartItems){
-        const product = await Product.findById(cartItem.productId);
-        if(!product) continue;
-          const itemTotal = product.price * cartItem.quantity;
+    let totalAmount = 0;
+
+    for (const cartItem of cartItems) {
+
+      const product = await Product.findById(cartItem.productId);
+      if (!product) continue;
+
+      const itemTotal = product.price * cartItem.quantity;
       totalAmount += itemTotal;
 
       orderItems.push({
@@ -32,10 +40,11 @@ router.post("/", authMiddleware, async(res, req) =>{
         quantity: cartItem.quantity,
         price: product.price
       });
-
     }
 
-     const newOrder = await Order.create({
+    const orderId = generateOrderId();
+
+    const newOrder = await Order.create({
       userId,
       items: orderItems,
       totalAmount,
@@ -44,7 +53,7 @@ router.post("/", authMiddleware, async(res, req) =>{
       orderId
     });
 
-  await Cart.deleteMany({ userId });
+    await Cart.deleteMany({ userId });
 
     res.json({
       success: true,
@@ -54,7 +63,7 @@ router.post("/", authMiddleware, async(res, req) =>{
 
   } catch (err) {
     res.status(500).json({ message: err.message });
-    }
+  }
 });
-module.exports = router;
 
+module.exports = router;
